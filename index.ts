@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import db from './config/db'
 
 dotenv.config();
 
@@ -9,6 +10,7 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+await db();
 
 // Test route
 app.get('/', (req: Request, res: Response) => {
