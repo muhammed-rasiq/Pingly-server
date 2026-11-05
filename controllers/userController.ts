@@ -24,3 +24,40 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
     });
   }
 };
+
+
+export const updateProfile = async (req: AuthRequest, res: Response) => {
+  try {
+    const { userName, bio, profileImage } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      {
+        userName,
+        bio,
+        profileImage
+      },
+      {
+        new: true,
+        runValidators: true
+      }
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    return res.status(200).json({
+      message: "Profile updated successfully",
+      user
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: "Server error"
+    });
+  }
+};
+
