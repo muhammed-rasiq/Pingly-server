@@ -3,6 +3,8 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User";
+import nodemailer from "nodemailer";
+import { randomInt } from "crypto";
 
 // REGISTER
 export const register = async (req: Request, res: Response) => {
@@ -94,6 +96,117 @@ export const login = async (req: Request, res: Response) => {
         userName: user.userName,
         email: user.email
       }
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: "Server error"
+    });
+  }
+};
+
+
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        message: "Email is required"
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    const otp = randomInt(100000, 1000000).toString();
+
+    // Store hashed OTP
+    user.resetOTP = await bcrypt.hash(otp, 10);
+    user.resetOTPExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+    await user.save();
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Pingly Password Reset OTP",
+      text: `Your OTP is ${otp}. It expires in 10 minutes.`
+    });
+
+    return res.status(200).json({
+      message: "OTP sent to your email"
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to send OTP"
+    });
+  }
+};
+
+
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({
+        message: "All fields are required"
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters"
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user || !user.resetOTP || !user.resetOTPExpires) {
+      return res.status(400).json({
+        message: "Invalid OTP"
+      });
+    }
+
+    if (user.resetOTPExpires < new Date()) {
+      return res.status(400).json({
+        message: "OTP expired"
+      });
+    }
+
+    const isMatch = await bcrypt.compare(otp, user.resetOTP);
+
+    if (!isMatch) {
+      return res.status(400).json({
+        message: "Invalid OTP"
+      });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetOTP = null;
+    user.resetOTPExpires = null;
+
+    await user.save();
+
+    return res.status(200).json({
+      message: "Password reset successfully"
     });
 
   } catch (error) {

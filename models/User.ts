@@ -34,7 +34,18 @@ const userSchema = new Schema(
     isActive: {
       type: Boolean,
       default: true
-    }
+    },
+
+    resetOTP: {
+   type: String,
+  default: null
+  },
+
+resetOTPExpires: {
+  type: Date,
+  default: null
+}
+
   },
   { timestamps: true }
 );
