@@ -70,3 +70,34 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
     });
   }
 };
+
+
+
+export const markMessagesRead = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const { userId } = req.params;
+
+    await Message.updateMany(
+      {
+        sender: userId,
+        receiver: req.userId,
+        isRead: false
+      },
+      {
+        $set: { isRead: true }
+      }
+    );
+
+    return res.status(200).json({
+      message: "Messages marked as read"
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: "Server error"
+    });
+  }
+};
