@@ -5,10 +5,12 @@ import {
   sendMessage,
   getMessages,markMessagesRead
 } from "../controllers/messageController";
+import { getConversations } from "../controllers/messageController";
 
 const router = express.Router();
 
 router.post("/send", verifyToken, sendMessage);
+router.get("/conversations", verifyToken, getConversations);
 router.get("/:userId", verifyToken, getMessages);
 router.patch("/read/:userId", verifyToken, markMessagesRead);
 
